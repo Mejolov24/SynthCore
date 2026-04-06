@@ -1,5 +1,6 @@
 #include <stdint.h>
-
+#ifndef SynthCore_h
+#define SynthCore_h
 #ifndef MAX_VOICES
     #define MAX_VOICES 32
 #endif
@@ -28,7 +29,7 @@ class SynthCore{
     void addVoice(const VoiceConfig& settings);
     void removeVoice(uint8_t channel, uint8_t note);
     void stepAudio(); // in case you need to control audio manually for hardware tricks, like pwm playback
-    void getAudioBuffer(int16_t* arr, uint8_t size);
+    void updateAudioBuffer(int16_t* buffer, uint8_t size);
     VoiceConfig Voices[MAX_VOICES];
     
     private:
@@ -39,3 +40,4 @@ class SynthCore{
     int16_t master_mix = 0;
     int16_t _processVoice(uint8_t voice);
 };
+#endif

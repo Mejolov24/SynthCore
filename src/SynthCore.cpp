@@ -6,6 +6,7 @@ void SynthCore::addVoice(const VoiceConfig& settings){
   for (int i = 0; i < MAX_VOICES ; i++) {
     if (!Voices[i].active) {
     Voices[i] = settings;
+    Voices[i].active = true;
     if (Voices[i]._scaled_length == 0) {Voices[i]._scaled_length = Voices[i].sample_length * 1024;}
     return;
     }
@@ -24,7 +25,6 @@ int16_t SynthCore::_processVoice(uint8_t voice){
   int32_t sum = 0;
 if (!Voices[voice].active) return 0;
 
-if (Voices[voice].active){
 if (Voices[voice].index < Voices[voice]._scaled_length){
   uint32_t index = Voices[voice].index >> 10;
   int16_t sample = Voices[voice].sample[index];
@@ -36,8 +36,6 @@ if (Voices[voice].index < Voices[voice]._scaled_length){
     if (Voices[voice].looping){Voices[voice].index = 0;}
     else{Voices[voice].active = false;}
       }
-
-}
 
     mix = sum;
     mix = constrain(sum, -32768, 32767);
@@ -63,4 +61,12 @@ for (int i = 0; i < MAX_CHANNELS; i++){
 
     mix = constrain(sum, -32768, 32767);
     master_mix = mix;
+}
+
+
+void SynthCore::updateAudioBuffer(int16_t* buffer, uint8_t size){
+  for (int i = 0; i < size; i++){
+    SynthCore::stepAudio();
+    buffer[i] = master_mix;
+  }
 }
