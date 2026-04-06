@@ -29,7 +29,7 @@ class SynthCore{
     void addVoice(const VoiceConfig& settings);
     void removeVoice(uint8_t channel, uint8_t note);
     void stepAudio(); // in case you need to control audio manually for hardware tricks, like pwm playback
-    void updateAudioBuffer(int16_t* buffer, uint8_t size);
+    void updateAudioBuffer(int16_t* buffer, uint16_t size);
     VoiceConfig Voices[MAX_VOICES];
     
     private:

@@ -64,7 +64,7 @@ for (int i = 0; i < MAX_CHANNELS; i++){
 }
 
 
-void SynthCore::updateAudioBuffer(int16_t* buffer, uint8_t size){
+void SynthCore::updateAudioBuffer(int16_t* buffer, uint16_t size){
   for (int i = 0; i < size; i++){
     SynthCore::stepAudio();
     buffer[i] = master_mix;
