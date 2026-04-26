@@ -10,43 +10,56 @@
 
 class SynthCore{
     public:
-
-    struct VoiceConfig {
-        const int16_t* sample;
-        uint32_t sample_length;
-        uint32_t _scaled_length = 0; // cached at note cration, used for point fasted fixed operations instead of float.
-        uint32_t index = 0;
-        uint8_t note = 0;
+    
+    struct ChannelParameters{
         uint16_t pitch_bend = 1024;
         uint8_t volume = 127;
-        uint8_t channel = 0;
-        bool looping = false;
-        bool active = false;
+        bool sustain = false;
     };
-/* TODO : id system for voices to prevent ghosting and allow overlap.
- Actually, Who needs this? no one in their right mind plays the same note on the same channel twice? */
 
-    void addVoice(const VoiceConfig& settings);
-    void removeVoice(uint8_t note, uint8_t channel);
-    void setChannelPitchBend(uint8_t channel, uint16_t pitch_bend);
+    struct SampleData {
+        const char* name;
+        const int16_t* data;
+        uint32_t length;
+        uint32_t loop_start;
+        uint32_t loop_end;
+    };
+
+    void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // return VID
+    void releaseVoiceByNote(uint8_t note, uint8_t channel);
+    void setChannelParameters(uint8_t channel, const ChannelParameters parameterts);
     void setBaseNote(uint8_t base_note); // used for calcuation of step (pitch change)
-    void stepAudio(); // in case you need to control audio manually for example ; hardware tricks.
-    void updateAudioBuffer(int16_t* buffer, uint16_t size);
+    void stepAudio(); // in case you need to control audio manually.
+    void updateAudioBuffer();
+    int16_t getAudioBuffer(); // returns pointer to buffer A or buffer B. (returns the oposite of previous buffer)
     int16_t master_mix = 0;
     int16_t channel_output[MAX_CHANNELS];
-    VoiceConfig Voices[MAX_VOICES];
     
     private:
-    int32_t _channel_sum_buffer[MAX_CHANNELS];
-    // All 16 channels initialized to 1024 (1.0x pitch ratio)
-    int16_t _channel_pitch_bend[MAX_CHANNELS] = {
-        1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024,
-        1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024
-    };
-    static const uint8_t _bend_range = 2;
-    int16_t _processVoice(uint8_t voice);
-    uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
 
+    struct Voice {
+    const SampleData* sample_data;
+    uint32_t _scaled_length = 0; // cached at note cration, used for fixed point operations instead of float.
+    uint32_t index = 0; // audio index
+    bool active = false;
+
+    uint8_t note = 69;
+    uint8_t channel = 0;
+    uint8_t velocity = 127;
+    };
+
+    int32_t _channel_sum_buffer[MAX_CHANNELS];
+    ChannelParameters _channels_paremeters[MAX_CHANNELS];
+    Voice Voices[MAX_VOICES];
+    Voice Sorted_VID[MAX_VOICES];// used as a LUT for voice stealing and similar.
+
+    
+    int16_t _processVoice(uint8_t VID);
+    uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
+    uint8_t findVoiceByNote(uint8_t note, uint8_t channel);
+    void removeVoice(uint8_t VID);
+
+    static const uint8_t _bend_range = 2;
     // fast look up table for the note A4 (Midi 69) used for step, if you want to change it use setbasenote();
     uint32_t _noteStepTable[128] = {
     8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 16,             // Octave 0
