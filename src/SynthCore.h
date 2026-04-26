@@ -38,32 +38,38 @@ class SynthCore{
     private:
 
     struct Voice {
-    const SampleData* sample_data;
-    uint32_t _scaled_length = 0; // cached at note cration, used for fixed point operations instead of float.
-    uint32_t index = 0; // audio index
-    bool active = false;
+        const SampleData* sample_data;
+        uint32_t _scaled_loop_start = 0; // cached at note cration, used for fixed point operations instead of float.
+        uint32_t _scaled_loop_end = 0;
+        uint32_t _scaled_length = 0;
+        uint32_t index = 0; // audio index
+        bool can_loop = true; // set to false if loop A and B are both 0.
+        bool active = false;
+        bool held = false; // used for sustain.
 
-    uint8_t note = 69;
-    uint8_t channel = 0;
-    uint8_t velocity = 127;
+        uint8_t note = 69;
+        uint8_t channel = 0;
+        uint8_t velocity = 127;
     };
 
     int32_t _channel_sum_buffer[MAX_CHANNELS];
     ChannelParameters _channels_paremeters[MAX_CHANNELS];
-    Voice Voices[MAX_VOICES];
-    Voice Sorted_VID[MAX_VOICES];// used as a LUT for voice stealing and similar.
+    Voice _Voices[MAX_VOICES];
+    uint8_t _SortedVID[MAX_VOICES];// used as a LUT for voice stealing and similar.
 
     
     int16_t _processVoice(uint8_t VID);
     uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
-    uint8_t findVoiceByNote(uint8_t note, uint8_t channel);
-    void removeVoice(uint8_t VID);
+    uint8_t _active_voice_count = 0;
+    uint8_t _allocateVID();
+    void _removeVoice(uint8_t VID);
+    void _removeIDFromSortedVID(uint8_t VID);
 
     static const uint8_t _bend_range = 2;
     // fast look up table for the note A4 (Midi 69) used for step, if you want to change it use setbasenote();
     uint32_t _noteStepTable[128] = {
     8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 16,             // Octave 0
-    17, 18, 19, 20, 21, 22, 24, 25, 27, 28, 30, 32,          // Octave 1
+    17, 18, 19, 20fin, 21, 22, 24, 25, 27, 28, 30, 32,          // Octave 1
     34, 36, 38, 40, 43, 45, 48, 51, 54, 57, 60, 64,          // Octave 2
     68, 72, 76, 81, 85, 91, 96, 102, 108, 114, 121, 128,     // Octave 3
     136, 144, 152, 161, 171, 181, 192, 203, 215, 228, 242, 256, // Octave 4

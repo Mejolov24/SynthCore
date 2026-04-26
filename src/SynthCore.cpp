@@ -11,53 +11,123 @@ for (int i = 0; i < 128; i++) {
     }
 }
 
-void SynthCore::setChannelPitchBend(uint8_t channel, u_int16_t pitch_bend){
-  _channel_pitch_bend[channel] = pitch_bend;
+void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters parameterts){
+  if (channel >= MAX_CHANNELS) return;
+  _channels_paremeters[channel] = parameterts;
 }
-void SynthCore::addVoice(const VoiceConfig& settings){
+
+uint8_t SynthCore::_allocateVID(){
+
+  if (_active_voice_count == MAX_VOICES){
+    uint8_t oldestVID = _SortedVID[0];
+    _Voices[oldestVID].active = false;
+    _Voices[oldestVID].held = false;
+    _removeIDFromSortedVID(oldestVID);
+    return oldestVID;
+  }
+
   for (int i = 0; i < MAX_VOICES ; i++) {
-    if (!Voices[i].active) {
-    Voices[i] = settings;
-    Voices[i].active = true;
-    if (Voices[i]._scaled_length == 0) {Voices[i]._scaled_length = Voices[i].sample_length << 10;} // calculate the Q10 single point scaled length
-    return;
+    Voice& current_voice = _Voices[i];
+    if (!current_voice.active) {
+      return i;
     }
   }
+  return 0;
 }
 
-void SynthCore::removeVoice(uint8_t note, uint8_t channel){
-    for (int i = 0; i < MAX_VOICES ; i++){
-      if (Voices[i].active && Voices[i].note == note){
-            Voices[i].active = false;}
+void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel){
+  uint8_t vid = _allocateVID();
+  Voice& current_voice = _Voices[vid];
+
+
+  current_voice.can_loop = true;
+  current_voice.index = 0;
+  if (sample_data->loop_start == 0 and sample_data->loop_end == 0) {current_voice.can_loop = false;}
+  current_voice.sample_data = sample_data;
+  current_voice.note = note;
+  current_voice.velocity = velocity;
+  current_voice.channel = channel;
+  current_voice._scaled_length = current_voice.sample_data->length << 10; // calculate the Q10 single point scaled length
+  current_voice._scaled_loop_start = current_voice.sample_data->loop_start << 10;
+  current_voice._scaled_loop_end = current_voice.sample_data->loop_end << 10;
+  current_voice.held = true;
+  current_voice.active = true;
+  _SortedVID[_active_voice_count] = vid;
+  _active_voice_count ++;
+
+}
+
+void SynthCore::_removeIDFromSortedVID(uint8_t VID) {
+    int targetIndex = -1;
+
+    for (int i = 0; i < _active_voice_count; i++) {
+        if (_SortedVID[i] == VID) {
+            targetIndex = i;
+            break;
+        }
+    }
+
+    if (targetIndex != -1) {
+        for (int i = targetIndex; i < _active_voice_count - 1; i++) {
+            _SortedVID[i] = _SortedVID[i + 1];
+        }
+        
+        // Update the count and clear the now-trailing slot
+        _active_voice_count--;
+        _SortedVID[_active_voice_count] = 255; // Use 255 as an empty marker
     }
 }
 
-int16_t SynthCore::_processVoice(uint8_t voice_index){
-  VoiceConfig &voice = Voices[voice_index];
+void SynthCore::releaseVoiceByNote(uint8_t note, uint8_t channel){
+    for (int i = _active_voice_count - 1; i >= 0 ; i--){
+      uint8_t vid = _SortedVID[i];
+      Voice& current_voice = _Voices[vid];
 
+      if (current_voice.note != note){continue;}
+      if (current_voice.channel != channel){continue;}
 
-uint32_t base_step = _noteStepTable[voice.note];
-
-  // Get the current pitch bend (Q10: 1024 = 1.0)
-  // Check if it's the drum channel (9), otherwise get the channel bend
-  uint32_t current_bend = (voice.channel == 9) ? 1024 : _channel_pitch_bend[voice.channel];
-  // Both are Q10, so multiplying them results in Q20. Shifting by 10 brings us back to Q10.
-  uint32_t step = (base_step * current_bend) >> 10;
-  int16_t sample = 0;
-if (!voice.active) return 0;
-
-if (voice.index < voice._scaled_length){
-  sample = voice.sample[voice.index >> 10];
-  voice.index += step;
-  sample = (sample * voice.volume) >> 7;
-  }
-  else{
-    if (voice.looping){voice.index = 0;}
-    else{voice.active = false;}
-    return 0;
+      if (!current_voice.can_loop){
+        current_voice.active = false;
+        current_voice.held = false;
+        _removeIDFromSortedVID(vid);
       }
+      
+      if (current_voice.can_loop){current_voice.held = false;}
+      break;
+    }
+}
 
-    return sample;
+int16_t SynthCore::_processVoice(uint8_t VID){
+  Voice& voice = _Voices[VID];
+  if (!voice.active) return 0;
+
+  ChannelParameters channelData = _channels_paremeters[voice.channel];
+  const SampleData& sample_data = *(voice.sample_data);
+  uint32_t boundaryA = 0;
+  uint32_t boundaryB = voice._scaled_length;
+  bool looping = false;
+  if (voice.can_loop and (voice.held or channelData.sustain) ){looping = true;}
+  if (looping){
+    boundaryA = voice._scaled_loop_start;
+    boundaryB = voice._scaled_loop_end;
+  }
+  if (voice.index >= boundaryB){
+    if (looping){
+      voice.index = voice._scaled_loop_start + (voice.index - boundaryB);
+    }
+    else{
+        voice.active = false;
+        voice.held = false;
+        _removeIDFromSortedVID(VID);
+        return 0;
+        }
+    }
+  int16_t sample = sample_data.data[voice.index >> 10];
+  uint32_t base_step = _noteStepTable[voice.note];
+  uint32_t current_bend = (voice.channel == 9) ? 1024 : channelData.pitch_bend;
+  uint32_t step = (base_step * current_bend) >> 10;
+  voice.index += step;
+  return (int16_t)((sample * voice.velocity) >> 7);
 }
 
 void SynthCore::stepAudio(){
