@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include "SynthCore.h"
 
 void SynthCore::setBaseNote(uint8_t base_note){
@@ -86,7 +85,7 @@ void SynthCore::releaseVoiceByNote(uint8_t note, uint8_t channel){
       if (current_voice.note != note){continue;}
       if (current_voice.channel != channel){continue;}
 
-      if (!current_voice.can_loop){
+      if (!(current_voice.can_loop or current_voice.channel == 9)){
         current_voice.active = false;
         current_voice.held = false;
         _removeIDFromSortedVID(vid);
@@ -112,7 +111,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     boundaryB = voice._scaled_loop_end;
   }
   if (voice.index >= boundaryB){
-    if (looping or voice.channel == 9){
+    if (looping){
       voice.index = voice._scaled_loop_start + (voice.index - boundaryB);
     }
     else{
@@ -152,7 +151,7 @@ for (int i = 0; i < MAX_CHANNELS; i++){
   sum += _channel_sum_buffer[i];
 }
 
-mix = constrain(sum, -32768, 32767);
+mix = (int16_t)CLAMP(sum, -32768, 32767);
 master_mix = mix;
 }
 

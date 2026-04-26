@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <cmath>
 #ifndef SynthCore_h
 #define SynthCore_h
 #ifndef MAX_VOICES
@@ -10,6 +11,8 @@
 #ifndef BUFFER_SIZE
     #define BUFFER_SIZE 256
 #endif
+
+#define CLAMP(value, low, high) ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
 
 class SynthCore{
     public:
@@ -64,7 +67,6 @@ class SynthCore{
     int16_t _processVoice(uint8_t VID);
     int16_t _BufferA[BUFFER_SIZE];
     int16_t _BufferB[BUFFER_SIZE];
-    int16_t* _current_buffer;
     bool _buffer_index = 0;
     uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
     uint8_t _active_voice_count = 0;
