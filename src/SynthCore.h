@@ -7,6 +7,9 @@
 #ifndef MAX_CHANNELS
     #define MAX_CHANNELS 16
 #endif
+#ifndef BUFFER_SIZE
+    #define BUFFER_SIZE 256
+#endif
 
 class SynthCore{
     public:
@@ -31,7 +34,7 @@ class SynthCore{
     void setBaseNote(uint8_t base_note); // used for calcuation of step (pitch change)
     void stepAudio(); // in case you need to control audio manually.
     void updateAudioBuffer();
-    int16_t getAudioBuffer(); // returns pointer to buffer A or buffer B. (returns the oposite of previous buffer)
+    int16_t* getAudioBuffer(); // returns pointer to buffer A or buffer B. (returns the oposite of previous buffer)
     int16_t master_mix = 0;
     int16_t channel_output[MAX_CHANNELS];
     
@@ -59,6 +62,10 @@ class SynthCore{
 
     
     int16_t _processVoice(uint8_t VID);
+    int16_t _BufferA[BUFFER_SIZE];
+    int16_t _BufferB[BUFFER_SIZE];
+    int16_t* _current_buffer;
+    bool _buffer_index = 0;
     uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
     uint8_t _active_voice_count = 0;
     uint8_t _allocateVID();
@@ -69,7 +76,7 @@ class SynthCore{
     // fast look up table for the note A4 (Midi 69) used for step, if you want to change it use setbasenote();
     uint32_t _noteStepTable[128] = {
     8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 16,             // Octave 0
-    17, 18, 19, 20fin, 21, 22, 24, 25, 27, 28, 30, 32,          // Octave 1
+    17, 18, 19, 20, 21, 22, 24, 25, 27, 28, 30, 32,          // Octave 1
     34, 36, 38, 40, 43, 45, 48, 51, 54, 57, 60, 64,          // Octave 2
     68, 72, 76, 81, 85, 91, 96, 102, 108, 114, 121, 128,     // Octave 3
     136, 144, 152, 161, 171, 181, 192, 203, 215, 228, 242, 256, // Octave 4

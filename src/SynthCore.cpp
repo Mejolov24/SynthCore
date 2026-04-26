@@ -112,7 +112,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     boundaryB = voice._scaled_loop_end;
   }
   if (voice.index >= boundaryB){
-    if (looping){
+    if (looping or voice.channel == 9){
       voice.index = voice._scaled_loop_start + (voice.index - boundaryB);
     }
     else{
@@ -139,22 +139,36 @@ for (int i = 0; i < MAX_CHANNELS; i++) {
     _channel_sum_buffer[i] = 0; 
 }
 
-for (int i = 0; i < MAX_VOICES; i++){
-_channel_sum_buffer[Voices[i].channel] += _processVoice(i);
+for (int i = _active_voice_count - 1; i >= 0; i--){
+uint8_t vid = _SortedVID[i];
+    if (_Voices[vid].active) {
+        _channel_sum_buffer[_Voices[vid].channel] += _processVoice(vid);
+    }
 }
 
 for (int i = 0; i < MAX_CHANNELS; i++){
-    sum += _channel_sum_buffer[i];
+  _channel_sum_buffer[i] = (_channel_sum_buffer[i]* _channels_paremeters[i].volume) >> 7;
+  channel_output[i] = _channel_sum_buffer[i];
+  sum += _channel_sum_buffer[i];
 }
 
-    mix = constrain(sum, -32768, 32767);
-    master_mix = mix;
+mix = constrain(sum, -32768, 32767);
+master_mix = mix;
 }
 
+int16_t* SynthCore::getAudioBuffer(){
+  if (!_buffer_index) return _BufferB; 
+  else return _BufferA;
+}
 
-void SynthCore::updateAudioBuffer(int16_t* buffer, uint16_t size){
-  for (int i = 0; i < size; i++){
-    SynthCore::stepAudio();
-    buffer[i] = master_mix;
+void SynthCore::updateAudioBuffer(){
+  int16_t* _current_buffer;
+  if (!_buffer_index){_current_buffer = _BufferA;}
+  else {_current_buffer = _BufferB;}
+
+  for (int i = 0; i < BUFFER_SIZE; i++){
+    stepAudio();
+    _current_buffer[i] = master_mix;
   }
+  _buffer_index = !_buffer_index;
 }
