@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <cmath>
+#include "ISampleData.h"
 #ifndef SynthCore_h
 #define SynthCore_h
 #ifndef MAX_VOICES
@@ -22,15 +23,6 @@ class SynthCore{
         uint8_t volume = 127;
         bool sustain = false;
     };
-
-    struct SampleData {
-        const char* name;
-        const int16_t* data;
-        uint32_t length;
-        uint32_t loop_start;
-        uint32_t loop_end;
-    };
-
     void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // return VID
     void releaseVoiceByNote(uint8_t note, uint8_t channel);
     void setChannelParameters(uint8_t channel, const ChannelParameters parameterts);
