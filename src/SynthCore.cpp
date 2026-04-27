@@ -15,6 +15,11 @@ void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters pa
   _channels_paremeters[channel] = parameterts;
 }
 
+SynthCore::ChannelParameters SynthCore::getChannelParameters(uint8_t channel){
+if (channel >= MAX_CHANNELS) return;
+return _channels_paremeters[channel];
+}
+
 uint8_t SynthCore::_allocateVID(){
 
   if (_active_voice_count == MAX_VOICES){
