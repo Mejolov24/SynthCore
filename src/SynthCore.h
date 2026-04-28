@@ -26,7 +26,7 @@ class SynthCore{
     void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // return VID
     void releaseVoiceByNote(uint8_t note, uint8_t channel);
     void setChannelParameters(uint8_t channel, const ChannelParameters parameterts);
-    ChannelParameters getChannelParameters(uint8_t channel,);
+    ChannelParameters getChannelParameters(uint8_t channel);
     void setBaseNote(uint8_t base_note); // used for calcuation of step (pitch change)
     void stepAudio(); // in case you need to control audio manually.
     void updateAudioBuffer();
