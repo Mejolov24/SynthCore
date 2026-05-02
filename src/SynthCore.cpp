@@ -16,7 +16,6 @@ void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters pa
 }
 
 SynthCore::ChannelParameters SynthCore::getChannelParameters(uint8_t channel){
-if (channel >= MAX_CHANNELS) return;
 return _channels_paremeters[channel];
 }
 
@@ -86,17 +85,10 @@ void SynthCore::releaseVoiceByNote(uint8_t note, uint8_t channel){
     for (int i = _active_voice_count - 1; i >= 0 ; i--){
       uint8_t vid = _SortedVID[i];
       Voice& current_voice = _Voices[vid];
-
-      if (current_voice.note != note){continue;}
       if (current_voice.channel != channel){continue;}
-
-      if (!(current_voice.can_loop or current_voice.channel == 9)){
-        current_voice.active = false;
-        current_voice.held = false;
-        _removeIDFromSortedVID(vid);
-      }
-      
-      if (current_voice.can_loop){current_voice.held = false;}
+      if (current_voice.note != note){continue;}
+      if (channel != 9){
+      current_voice.held = false;}
       break;
     }
 }
@@ -115,6 +107,12 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     boundaryA = voice._scaled_loop_start;
     boundaryB = voice._scaled_loop_end;
   }
+  else if(! voice.held and not channelData.sustain){
+    voice.active = false;
+    voice.held = false;
+    _removeIDFromSortedVID(VID);
+    return 0;
+  }
   if (voice.index >= boundaryB){
     if (looping){
       voice.index = voice._scaled_loop_start + (voice.index - boundaryB);
@@ -129,8 +127,8 @@ int16_t SynthCore::_processVoice(uint8_t VID){
   int16_t sample = sample_data.data[voice.index >> 10];
   uint32_t base_step = _noteStepTable[voice.note];
   uint32_t current_bend = (voice.channel == 9) ? 1024 : channelData.pitch_bend;
-  uint32_t step = (base_step * current_bend) >> 10;
-  voice.index += step;
+  uint64_t step = ((uint64_t)base_step * current_bend);
+  voice.index += (step >> 10);
   return (int16_t)((sample * voice.velocity) >> 7);
 }
 
