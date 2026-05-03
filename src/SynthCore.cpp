@@ -10,9 +10,9 @@ for (int i = 0; i < 128; i++) {
     }
 }
 
-void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters parameterts){
+void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters parameters){
   if (channel >= MAX_CHANNELS) return;
-  _channels_paremeters[channel] = parameterts;
+  _channels_paremeters[channel] = parameters;
 }
 
 SynthCore::ChannelParameters SynthCore::getChannelParameters(uint8_t channel){
@@ -87,7 +87,7 @@ void SynthCore::releaseVoiceByNote(uint8_t note, uint8_t channel){
       Voice& current_voice = _Voices[vid];
       if (current_voice.channel != channel){continue;}
       if (current_voice.note != note){continue;}
-      if (channel != 9){
+      if (channel != PERCUSSION_CH){
       current_voice.held = false;}
       break;
     }
@@ -126,7 +126,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     }
   int16_t sample = sample_data.data[voice.index >> 10];
   uint32_t base_step = _noteStepTable[voice.note];
-  uint32_t current_bend = (voice.channel == 9) ? 1024 : channelData.pitch_bend;
+  uint32_t current_bend = (voice.channel == PERCUSSION_CH) ? 1024 : channelData.pitch_bend;
   uint64_t step = ((uint64_t)base_step * current_bend);
   voice.index += (step >> 10);
   return (int16_t)((sample * voice.velocity) >> 7);

@@ -9,6 +9,9 @@
 #ifndef MAX_CHANNELS
     #define MAX_CHANNELS 16
 #endif
+#ifndef PERCUSSION_CH
+    #define PERCUSSION_CH 9
+#endif
 #ifndef BUFFER_SIZE
     #define BUFFER_SIZE 256
 #endif
@@ -23,16 +26,16 @@ class SynthCore{
         uint8_t volume = 127;
         bool sustain = false;
     };
-    void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // return VID
-    void releaseVoiceByNote(uint8_t note, uint8_t channel);
-    void setChannelParameters(uint8_t channel, const ChannelParameters parameterts);
+    void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
+    void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice, except on DRUM_CH
+    void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
     ChannelParameters getChannelParameters(uint8_t channel);
-    void setBaseNote(uint8_t base_note); // used for calcuation of step (pitch change)
-    void stepAudio(); // in case you need to control audio manually.
-    void updateAudioBuffer();
-    int16_t* getAudioBuffer(); // returns pointer to buffer A or buffer B. (returns the oposite of previous buffer)
-    int16_t master_mix = 0;
-    int16_t channel_output[MAX_CHANNELS];
+    void setBaseNote(uint8_t base_note); // set the base note of all samples (Reference point)
+    void stepAudio(); // in case you need to control audio manually. processes one engine tick
+    void updateAudioBuffer(); // processes the voices and generates buffer
+    int16_t* getAudioBuffer(); // returns pointer to buffer A or buffer B. (returns the opposite of previous buffer)
+    int16_t master_mix = 0; // final stage of processing, has the value of all voices mixed together.
+    int16_t channel_output[MAX_CHANNELS]; // separated channel output for voices, useful for plotting.
     
     private:
 
