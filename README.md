@@ -12,7 +12,6 @@ SynthCore is a freestanding C++ audio engine designed for real-time embedded aud
     ```cpp
     #define MAX_VOICES 32
     #define MAX_CHANNELS 16
-    #define PERCUSSION_CH 9
     #define BUFFER_SIZE 256
     ```
 * Fixed-point arithmetic
@@ -58,7 +57,7 @@ getChannelParameters()
 ## API
 ```cpp
     void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
-    void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice, except on DRUM_CH
+    void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice
     void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
     ChannelParameters getChannelParameters(uint8_t channel);
     void setBaseNote(uint8_t base_note); // set the base note of all samples (Reference point), default value is 69
@@ -73,7 +72,6 @@ getChannelParameters()
 ```cpp
 #define MAX_VOICES 32
 #define MAX_CHANNELS 16
-#define PERCUSSION_CH 9
 #define BUFFER_SIZE 256
 
 #include <SynthCore.h>

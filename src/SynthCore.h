@@ -9,9 +9,6 @@
 #ifndef MAX_CHANNELS
     #define MAX_CHANNELS 16
 #endif
-#ifndef PERCUSSION_CH
-    #define PERCUSSION_CH 9
-#endif
 #ifndef BUFFER_SIZE
     #define BUFFER_SIZE 256
 #endif
@@ -27,7 +24,7 @@ class SynthCore{
         bool sustain = false;
     };
     void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
-    void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice, except on DRUM_CH
+    void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice
     void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
     ChannelParameters getChannelParameters(uint8_t channel);
     void setBaseNote(uint8_t base_note); // set the base note of all samples (Reference point)
