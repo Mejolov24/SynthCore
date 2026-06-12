@@ -38,7 +38,7 @@ uint8_t SynthCore::_allocateVID(){
   return 0;
 }
 
-void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel){
+void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel, bool ignore_note){
   uint8_t vid = _allocateVID();
   Voice& current_voice = _Voices[vid];
 
@@ -53,6 +53,7 @@ void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, uint8_t
   current_voice._scaled_length = current_voice.sample_data->length << 10; // calculate the Q10 single point scaled length
   current_voice._scaled_loop_start = current_voice.sample_data->loop_start << 10;
   current_voice._scaled_loop_end = current_voice.sample_data->loop_end << 10;
+  current_voice.ignore_note = ignore_note;
   current_voice.held = true;
   current_voice.active = true;
   _SortedVID[_active_voice_count] = vid;
@@ -125,6 +126,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     }
   int16_t sample = sample_data.data[voice.index >> 10];
   uint32_t base_step = _noteStepTable[voice.note];
+  if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
   uint32_t current_bend = channelData.pitch_bend;
   uint64_t step = ((uint64_t)base_step * current_bend);
   voice.index += (step >> 10);

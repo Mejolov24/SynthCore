@@ -23,7 +23,7 @@ class SynthCore{
         uint8_t volume = 127;
         bool sustain = false;
     };
-    void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
+    void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel, bool ignore_note); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
     void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice
     void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
     ChannelParameters getChannelParameters(uint8_t channel);
@@ -34,6 +34,9 @@ class SynthCore{
     int16_t master_mix = 0; // final stage of processing, has the value of all voices mixed together.
     int16_t channel_output[MAX_CHANNELS]; // separated channel output for voices, useful for plotting.
     
+    // beacuse of the system used for handling voice removal and stealing, we must send voices with different notes when using drums
+    // otherwise the engine gets confused and flags all notes as the same note, to prevent that, set the parameter ignore_note to true.
+
     private:
 
     struct Voice {
@@ -45,6 +48,7 @@ class SynthCore{
         bool can_loop = true; // set to false if loop A and B are both 0.
         bool active = false;
         bool held = false; // used for sustain.
+        bool ignore_note = false; // used for drums or similar
 
         uint8_t note = 69;
         uint8_t channel = 0;
