@@ -1,13 +1,13 @@
 #include "SynthCore.h"
 
-void SynthCore::setBaseNote(uint8_t base_note){
-_baseNote =  base_note;
-for (int i = 0; i < 128; i++) {
-        float ratio = pow(2.0f, (i - (float)_baseNote) / 12.0f);
-        
-        // Convert to Q10 fixed-point
-        _noteStepTable[i] = (uint32_t)(ratio * 1024.0f);
-    }
+void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate){
+  _baseNote =  base_note;
+  for (int i = 0; i < 128; i++) {
+          float ratio = pow(2.0f, (i - (float)_baseNote) / 12.0f);
+          // Convert to Q10 fixed-point
+          _noteStepTable[i] = (uint32_t)(ratio * 1024.0f);
+      }
+      _sampling_rate = sampling_rate;
 }
 
 void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters parameters){
@@ -101,7 +101,9 @@ int16_t SynthCore::_processVoice(uint8_t VID){
   const SampleData& sample_data = *(voice.sample_data);
   uint32_t boundaryA = 0;
   uint32_t boundaryB = voice._scaled_length;
+  uint8_t bit_shift = 16 - sample_data.bit_depth;
   bool looping = false;
+  // looping logic
   if (voice.can_loop and (voice.held or channelData.sustain) ){looping = true;}
   if (looping){
     boundaryA = voice._scaled_loop_start;
@@ -124,7 +126,8 @@ int16_t SynthCore::_processVoice(uint8_t VID){
         return 0;
         }
     }
-  int16_t sample = sample_data.data[voice.index >> 10];
+    // audio processing
+  int16_t sample = sample_data.data[voice.index >> 10] << bit_shift;
   uint32_t base_step = _noteStepTable[voice.note];
   if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
   uint32_t current_bend = channelData.pitch_bend;
