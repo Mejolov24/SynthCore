@@ -101,7 +101,6 @@ int16_t SynthCore::_processVoice(uint8_t VID){
   const SampleData& sample_data = *(voice.sample_data);
   uint32_t boundaryA = 0;
   uint32_t boundaryB = voice._scaled_length;
-  uint8_t bit_shift = 16 - sample_data.bit_depth;
   bool looping = false;
   // looping logic
   if (voice.can_loop and (voice.held or channelData.sustain) ){looping = true;}
@@ -127,7 +126,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
         }
     }
     // audio processing
-  int16_t sample = sample_data.data[voice.index >> 10] << bit_shift;
+  int16_t sample = sample_data.data[voice.index >> 10];
   uint32_t base_step = _noteStepTable[voice.note];
   if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
   uint32_t current_bend = channelData.pitch_bend;

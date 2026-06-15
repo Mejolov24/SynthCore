@@ -5,7 +5,6 @@
 struct SampleData {
     const char* name;
     const int16_t* data;
-    uint8_t bit_depth;
     uint32_t length;
     uint32_t loop_start;
     uint32_t loop_end;
