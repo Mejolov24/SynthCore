@@ -27,6 +27,7 @@ class SynthCore{
     };
     void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel, bool ignore_note = false); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
     void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice
+    void KillAllVoices(); // useful for when voices get stuck
     void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
     ChannelParameters getChannelParameters(uint8_t channel);
     void setup(uint8_t base_note, uint16_t sampling_rate); // set the base note of all samples (Reference point) and the sample rate for some effects such as vibrato

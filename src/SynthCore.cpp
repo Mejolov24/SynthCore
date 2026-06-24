@@ -93,6 +93,16 @@ void SynthCore::releaseVoiceByNote(uint8_t note, uint8_t channel){
     }
 }
 
+void SynthCore::KillAllVoices(){
+  for (int i = 0; i < MAX_VOICES ; i++){
+      uint8_t vid = _SortedVID[i];
+      Voice& current_voice = _Voices[vid];
+      current_voice.held = false;
+      current_voice.active = false;
+      break;
+  }
+}
+
 int16_t SynthCore::_processVoice(uint8_t VID){
   Voice& voice = _Voices[VID];
   if (!voice.active) return 0;
@@ -126,13 +136,26 @@ int16_t SynthCore::_processVoice(uint8_t VID){
         }
     }
     // audio processing
-  int16_t sample = sample_data.data[voice.index >> 10];
-  uint32_t base_step = _noteStepTable[voice.note];
-  if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
-  uint32_t current_bend = channelData.pitch_bend;
-  uint64_t step = ((uint64_t)base_step * current_bend);
-  voice.index += (step >> 10);
-  return (int16_t)((sample * voice.velocity) >> 7);
+    uint32_t int_index = voice.index >> 10;
+    uint32_t frac = voice.index & 0x3FF;
+    int16_t sampleA = sample_data.data[int_index];
+    int16_t sampleB = 0;
+    if (looping){
+      uint32_t next_int_index = int_index + 1;
+    if (next_int_index >= (boundaryB >> 10)){sampleB = sample_data.data[voice._scaled_loop_start >> 10];}
+    else{sampleB = sample_data.data[next_int_index];}
+    }
+    else{
+      if (int_index + 1 < sample_data.length){sampleB = sample_data.data[int_index + 1];}
+      else { sampleB = sampleA;}
+    }
+    int32_t interpolated_sample = sampleA + (((int32_t)sampleB - sampleA) * (int32_t)frac >> 10);
+    uint32_t base_step = _noteStepTable[voice.note];
+    if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
+    uint32_t current_bend = channelData.pitch_bend;
+    uint64_t step = ((uint64_t)base_step * current_bend);
+    voice.index += (step >> 10);
+    return (int16_t)((interpolated_sample * voice.velocity) >> 7);
 }
 
 void SynthCore::stepAudio(){
