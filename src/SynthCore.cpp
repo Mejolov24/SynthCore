@@ -96,9 +96,9 @@ void SynthCore::releaseVoiceByNote(uint8_t note, uint8_t channel){
 void SynthCore::KillAllVoices(){
   for (int i = 0; i < MAX_VOICES ; i++){
       Voice& current_voice = _Voices[i];
+      _SortedVID[i] = 255;
       current_voice.held = false;
       current_voice.active = false;
-      break;
   }
 }
 
