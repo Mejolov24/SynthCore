@@ -99,6 +99,7 @@ void SynthCore::KillAllVoices(){
       _SortedVID[i] = 255;
       current_voice.held = false;
       current_voice.active = false;
+      _active_voice_count = 0;
   }
 }
 
