@@ -137,17 +137,10 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     }
     // audio processing
     uint32_t int_index = voice.index >> 10;
-    uint32_t frac = voice.index & 0x3FF;
-    int16_t sampleA = sample_data.data[int_index];
-    int16_t sampleB = 0;
-    if (looping){
-      uint32_t next_int_index = int_index + 1;
-    if (next_int_index >= (boundaryB >> 10)){sampleB = sample_data.data[voice._scaled_loop_start >> 10];}
-    else{sampleB = sample_data.data[next_int_index];}
-    }
-    else{
-      if (int_index + 1 < sample_data.length){sampleB = sample_data.data[int_index + 1];}
-      else { sampleB = sampleA;}
+    uint32_t frac = voice.index & 0x3FF;int16_t sampleA = sample_data.data[int_index];
+    int16_t sampleB = sampleA; // Default fallback
+    if (int_index + 1 < sample_data.length) {
+        sampleB = sample_data.data[int_index + 1];
     }
     int32_t interpolated_sample = sampleA + (((int32_t)sampleB - sampleA) * (int32_t)frac >> 10);
     uint32_t base_step = _noteStepTable[voice.note];
