@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <cmath>
 #include "ISampleData.h"
 #ifndef SynthCore_h
 #define SynthCore_h
@@ -12,10 +11,35 @@
 #ifndef BUFFER_SIZE
     #define BUFFER_SIZE 256
 #endif
+#ifndef DEFAULT_BASE_NOTE
+    #define DEFAULT_BASE_NOTE 60
+#endif
+#ifndef DEFAULT_SAMPLING_RATE
+    #define DEFAULT_SAMPLING_RATE 22050
+#endif
 
 #define CLAMP(value, low, high) ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
 
 class SynthCore{
+    private:
+    static const float Ln2 = 0.6931471805599453f;
+
+    static constexpr float Exp(float x){
+        float sum = 1.0f;
+        float fraction = 1.0f;
+        for(int i = 1; i < 16; ++i){fraction *= x / static_cast<float>(i); sum += fraction;}
+        return sum;
+    }
+    static constexpr float Pow2(float x){return Exp(x * Ln2);}
+    static constexpr std::array<uint32_t, 128> generateNoteStepTable(uint8_t baseNote){
+        std::aray<uint32_t, 128> table{};
+        for (int i = 0; i < 128; i++){
+            float ratio = Pow2((static_cast<float>(i) - static_cast<float>(baseNote)) / 12.0f )
+            table[i] = static_cast<uint32_t>(ratio * 1024.0f);
+        }
+        return table;
+    }
+
     public:
     
     struct ChannelParameters{
@@ -68,28 +92,16 @@ class SynthCore{
     int16_t _processVoice(uint8_t VID);
     int16_t _BufferA[BUFFER_SIZE];
     int16_t _BufferB[BUFFER_SIZE];
-    int16_t _sampling_rate;
     bool _buffer_index = 0;
-    uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
+
+    int16_t _sampling_rate = DEFAULT_SAMPLING_RATE;
+    uint8_t _baseNote = DEFAULT_BASE_NOTE;
     uint8_t _active_voice_count = 0;
     uint8_t _allocateVID();
     void _removeVoice(uint8_t VID);
     void _removeIDFromSortedVID(uint8_t VID);
 
-    static const uint8_t _bend_range = 2;
-    // fast look up table for the note A4 (Midi 69) used for step, if you want to change it use setbasenote();
-    uint32_t _noteStepTable[128] = {
-        13, 14, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24,           // Octave 0
-        26, 27, 29, 31, 32, 34, 36, 38, 41, 43, 46, 48,           // Octave 1
-        51, 54, 58, 61, 65, 69, 73, 77, 82, 87, 92, 97,           // Octave 2
-        103, 109, 115, 122, 129, 137, 145, 154, 163, 173, 183, 194, // Octave 3
-        206, 218, 231, 245, 259, 275, 291, 308, 327, 346, 367, 388, // Octave 4
-        412, 436, 462, 490, 519, 550, 582, 617, 654, 693, 734, 777, // Octave 5
-        823, 872, 924, 979, 1037, 1099, 1164, 1233, 1307, 1384, 1467, 1554, // Octave 6
-        1646, 1744, 1848, 1958, 2074, 2198, 2328, 2467, 2613, 2769, 2933, 3108, // Octave 7
-        3293, 3488, 3696, 3915, 4148, 4395, 4656, 4933, 5226, 5537, 5866, 6215, // Octave 8
-        6585, 6976, 7391, 7830, 8296, 8789, 9312, 9865, 10452, 11073, 11732, 12429, // Octave 9
-        13168, 13951, 14781, 15660, 16591, 17578, 18623, 19730 // Octave 10
-    };
+    const uint8_t _bend_range = 2;
+    std::array<uint32_t,128> _noteStepTable = generateNoteStepTable(_baseNote);
 };
 #endif
