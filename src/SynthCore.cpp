@@ -142,7 +142,12 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     int32_t interpolated_sample = sampleA + (((int32_t)sampleB - sampleA) * (int32_t)frac >> 10);
     uint32_t base_step = _noteStepTable[voice.note];
     if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
-    uint32_t current_bend = channelData.pitch_bend;
+
+    int32_t raw_bend = (int32_t)channelData.pitch_bend - 1024;
+    uint8_t semitone_range = channelData.bend_range;
+    int32_t scaled_bend_offset = (raw_bend * semitone_range) / 12;
+    uint32_t current_bend = 1024 + scaled_bend_offset;
+
     uint64_t step = ((uint64_t)base_step * current_bend);
     voice.index += (step >> 10);
     return (int16_t)((interpolated_sample * voice.velocity) >> 7);

@@ -17,6 +17,9 @@
 #ifndef DEFAULT_SAMPLING_RATE
     #define DEFAULT_SAMPLING_RATE 22050
 #endif
+#ifndef DEFAULT_BEND_RANGE
+    #define DEFAULT_BEND_RANGE 2
+#endif
 
 #define CLAMP(value, low, high) ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
 
@@ -45,7 +48,7 @@ class SynthCore{
     struct ChannelParameters{
         uint16_t pitch_bend = 1024;
         uint16_t vibrato = 1024;
-        uint8_t pitch_range = 2; // semitone range, -2 and +2 
+        uint8_t bend_range = 2; // semitone range, -2 and +2 
         uint8_t volume = 127;
         bool sustain = false;
     };
@@ -100,8 +103,6 @@ class SynthCore{
     uint8_t _allocateVID();
     void _removeVoice(uint8_t VID);
     void _removeIDFromSortedVID(uint8_t VID);
-
-    const uint8_t _bend_range = 2;
     std::array<uint32_t,128> _noteStepTable = generateNoteStepTable(_baseNote);
 };
 #endif
