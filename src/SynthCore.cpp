@@ -2,8 +2,12 @@
 
 void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate){
   _baseNote =  base_note;
-  noteStepTable = generateNoteStepTable(base_note);
-  _sampling_rate = sampling_rate;
+  for (int i = 0; i < 128; i++) {
+          float ratio = pow(2.0f, (i - (float)_baseNote) / 12.0f);
+          // Convert to Q10 fixed-point
+          _noteStepTable[i] = (uint32_t)(ratio * 1024.0f);
+      }
+      _sampling_rate = sampling_rate;
 }
 
 void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters parameters){
@@ -133,9 +137,8 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     }
     // audio processing
     uint32_t int_index = voice.index >> 10;
-    uint32_t frac = voice.index & 0x3FF;
-    int16_t sampleA = sample_data.data[int_index];
-    int16_t sampleB = sampleA;
+    uint32_t frac = voice.index & 0x3FF;int16_t sampleA = sample_data.data[int_index];
+    int16_t sampleB = sampleA; // Default fallback
     if (int_index + 1 < sample_data.length) {
         sampleB = sample_data.data[int_index + 1];
     }
