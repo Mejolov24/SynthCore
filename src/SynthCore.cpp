@@ -112,7 +112,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
   Voice& voice = _Voices[VID];
   if (!voice.active) return 0;
   if (!voice.sample_data) return 0;
-  ChannelParameters channelData = _channels_paremeters[voice.channel];
+  ChannelParameters& channelData = _channels_paremeters[voice.channel];
   const SampleData& sample_data = *(voice.sample_data);
   uint32_t boundaryA = 0;
   uint32_t boundaryB = voice._scaled_length;
@@ -162,7 +162,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
 
     uint64_t step = ((uint64_t)base_step * current_bend);
     voice.index += (step >> 10);
-    return static_cast<int16_t>((static_cast<int32_t>(interpolated_sample) * digital_gain * voice.velocity) >> 10);
+    return static_cast<int16_t>((static_cast<int32_t>(interpolated_sample) * digital_gain * voice.velocity) >> 20);
 }
 
 void SynthCore::stepAudio(){

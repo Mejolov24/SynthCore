@@ -118,7 +118,7 @@ class SynthCore{
     int16_t _BufferA[BUFFER_SIZE];
     int16_t _BufferB[BUFFER_SIZE];
     int16_t _sampling_rate = 0;
-    uint16_t digital_gain = 0;
+    uint16_t digital_gain = 1024;
     bool _buffer_index = 0;
     uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
     uint8_t _active_voice_count = 0;
@@ -140,6 +140,34 @@ class SynthCore{
         3293, 3488, 3696, 3915, 4148, 4395, 4656, 4933, 5226, 5537, 5866, 6215, // Octave 8
         6585, 6976, 7391, 7830, 8296, 8789, 9312, 9865, 10452, 11073, 11732, 12429, // Octave 9
         13168, 13951, 14781, 15660, 16591, 17578, 18623, 19730 // Octave 10
+    };
+
+    static constexpr uint16_t DB_LUT_SIZE = 24;
+    static constexpr uint16_t db_gain_table[DB_LUT_SIZE] = {
+        0,    // -40 dB (effectively mute)
+        10,   // -38 dB
+        13,   // -36 dB
+        16,   // -34 dB
+        20,   // -32 dB
+        25,   // -30 dB
+        32,   // -28 dB
+        41,   // -26 dB
+        51,   // -24 dB
+        65,   // -22 dB
+        81,   // -20 dB
+        102,  // -18 dB
+        129,  // -16 dB
+        162,  // -14 dB
+        204,  // -12 dB
+        257,  // -10 dB
+        324,  // -8 dB
+        408,  // -6 dB
+        513,  // -4 dB
+        646,  // -2 dB
+        1024, //  0 dB (Unity Gain)
+        1289, // +2 dB
+        1622, // +4 dB
+        2048  // +6 dB
     };
 
 };
