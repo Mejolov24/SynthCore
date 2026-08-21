@@ -1,5 +1,9 @@
 #include "SynthCore.h"
 
+void SynthCore::set_digital_gain(uint16_t value){
+  digital_gain = value;
+}
+
 void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate){
   _baseNote =  base_note;
   for (int i = 0; i < 128; i++) {
@@ -13,6 +17,7 @@ void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate){
 void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters parameters){
   if (channel >= MAX_CHANNELS) return;
   _channels_paremeters[channel] = parameters;
+  _channels_paremeters[channel].lfo.setFrequency(parameters.vibrato_frequency,_sampling_rate);
 }
 
 SynthCore::ChannelParameters SynthCore::getChannelParameters(uint8_t channel){
@@ -106,7 +111,7 @@ void SynthCore::KillAllVoices(){
 int16_t SynthCore::_processVoice(uint8_t VID){
   Voice& voice = _Voices[VID];
   if (!voice.active) return 0;
-
+  if (!voice.sample_data) return 0;
   ChannelParameters channelData = _channels_paremeters[voice.channel];
   const SampleData& sample_data = *(voice.sample_data);
   uint32_t boundaryA = 0;
@@ -126,7 +131,8 @@ int16_t SynthCore::_processVoice(uint8_t VID){
   }
   if (voice.index >= boundaryB){
     if (looping){
-      voice.index = voice._scaled_loop_start + (voice.index - boundaryB);
+      uint32_t loop_length = boundaryB - boundaryA;
+      voice.index = boundaryA + ((voice.index - boundaryB) % loop_length);
     }
     else{
         voice.active = false;
@@ -145,15 +151,18 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     int32_t interpolated_sample = sampleA + (((int32_t)sampleB - sampleA) * (int32_t)frac >> 10);
     uint32_t base_step = _noteStepTable[voice.note];
     if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
-
-    int32_t raw_bend = (int32_t)channelData.pitch_bend - 1024;
-    uint8_t semitone_range = channelData.bend_range;
-    int32_t scaled_bend_offset = (raw_bend * semitone_range) / 12;
-    uint32_t current_bend = 1024 + scaled_bend_offset;
+    
+    channelData.lfo.tick();
+    int16_t lfo_value = 0;
+    if(channelData.vibrato_frequency != 0 and channelData.vibrato_range > 0){lfo_value = channelData.lfo.getSample();}
+    int32_t raw_bend = static_cast<int32_t>(channelData.pitch_bend - 1024);
+    int32_t scaled_bend_offset = (raw_bend * channelData.bend_range) / 12;
+    int32_t scaled_lfo_offset = (lfo_value * channelData.vibrato_range) / 12;
+    uint32_t current_bend = 1024 + scaled_bend_offset + scaled_lfo_offset;
 
     uint64_t step = ((uint64_t)base_step * current_bend);
     voice.index += (step >> 10);
-    return (int16_t)((interpolated_sample * voice.velocity) >> 7);
+    return static_cast<int16_t>((static_cast<int32_t>(interpolated_sample) * digital_gain * voice.velocity) >> 10);
 }
 
 void SynthCore::stepAudio(){

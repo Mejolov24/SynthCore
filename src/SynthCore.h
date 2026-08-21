@@ -21,18 +21,58 @@
 #ifndef DEFAULT_BEND_RANGE
     #define DEFAULT_BEND_RANGE 2
 #endif
+#ifndef LFO_LUT_SIZE
+    #define LFO_LUT_SIZE 256
+#endif
+
 
 #define CLAMP(value, low, high) ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
 
 class SynthCore{
+    private:
+
+    struct LFO {
+        uint32_t phase = 0;
+        uint32_t step_size = 0;
+
+        static constexpr int16_t lut[LFO_LUT_SIZE] = {
+            0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 249, 274, 298, 322, 346, 370,
+            392, 415, 437, 459, 480, 501, 522, 542, 562, 581, 600, 618, 636, 654, 671, 688,
+            706, 724, 741, 758, 775, 791, 807, 822, 837, 851, 865, 878, 891, 903, 914, 925,
+            936, 946, 955, 964, 972, 980, 987, 993, 999, 1004, 1009, 1013, 1016, 1019, 1021, 1023,
+            1024, 1023, 1021, 1019, 1016, 1013, 1009, 1004, 999, 993, 987, 980, 972, 964, 955, 946,
+            936, 925, 914, 903, 891, 878, 865, 851, 837, 822, 807, 791, 775, 758, 741, 724,
+            706, 688, 671, 654, 636, 618, 600, 581, 562, 542, 522, 501, 480, 459, 437, 415,
+            392, 370, 346, 322, 298, 274, 249, 225, 200, 175, 150, 125, 100, 75, 50, 25,
+            0, -25, -50, -75, -100, -125, -150, -175, -200, -225, -249, -274, -298, -322, -346, -370,
+            -392, -415, -437, -459, -480, -501, -522, -542, -562, -581, -600, -618, -636, -654, -671, -688,
+            -706, -724, -741, -758, -775, -791, -807, -822, -837, -851, -865, -878, -891, -903, -914, -925,
+            -936, -946, -955, -964, -972, -980, -987, -993, -999, -1004, -1009, -1013, -1016, -1019, -1021, -1023,
+            -1024, -1023, -1021, -1019, -1016, -1013, -1009, -1004, -999, -993, -987, -980, -972, -964, -955, -946,
+            -936, -925, -914, -903, -891, -878, -865, -851, -837, -822, -807, -791, -775, -758, -741, -724,
+            -706, -688, -671, -654, -636, -618, -600, -581, -562, -542, -522, -501, -480, -459, -437, -415,
+            -392, -370, -346, -322, -298, -274, -249, -225, -200, -175, -150, -125, -100, -75, -50, -25
+        };
+
+        void setFrequency(float hz, uint16_t sampling_rate){step_size = static_cast<uint32_t>((hz * LFO_LUT_SIZE * 4294967296.0f) / sampling_rate);}
+        int16_t getSample(){
+            uint32_t index = phase >> 24;
+            return lut[index];
+        }
+        void tick(){phase += step_size;}
+    };
+
     public:
     
     struct ChannelParameters{
         uint16_t pitch_bend = 1024;
-        uint16_t vibrato = 1024;
+        float vibrato_frequency = 0;
         uint8_t bend_range = 2; // semitone range, -2 and +2 
+        uint8_t vibrato_range = 2;
         uint8_t volume = 127;
         bool sustain = false;
+
+        LFO lfo;
     };
     void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel, bool ignore_note = false); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
     void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice
@@ -40,6 +80,7 @@ class SynthCore{
     void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
     ChannelParameters getChannelParameters(uint8_t channel);
     void setup(uint8_t base_note, uint16_t sampling_rate); // set the base note of all samples (Reference point) and the sample rate for some effects such as vibrato
+    void set_digital_gain(uint16_t value);
     void stepAudio(); // in case you need to control audio manually. processes one engine tick
     void updateAudioBuffer(); // processes the voices and generates buffer
     int16_t* getAudioBuffer(); // returns pointer to buffer A or buffer B. (returns the opposite of previous buffer)
@@ -72,12 +113,12 @@ class SynthCore{
     ChannelParameters _channels_paremeters[MAX_CHANNELS];
     Voice _Voices[MAX_VOICES];
     uint8_t _SortedVID[MAX_VOICES];// used as a LUT for voice stealing and similar.
-
     
     int16_t _processVoice(uint8_t VID);
     int16_t _BufferA[BUFFER_SIZE];
     int16_t _BufferB[BUFFER_SIZE];
-    int16_t _sampling_rate;
+    int16_t _sampling_rate = 0;
+    uint16_t digital_gain = 0;
     bool _buffer_index = 0;
     uint8_t _baseNote = 69; // use A4 as base note by default, change via setBaseNote()
     uint8_t _active_voice_count = 0;
@@ -100,5 +141,6 @@ class SynthCore{
         6585, 6976, 7391, 7830, 8296, 8789, 9312, 9865, 10452, 11073, 11732, 12429, // Octave 9
         13168, 13951, 14781, 15660, 16591, 17578, 18623, 19730 // Octave 10
     };
+
 };
 #endif
