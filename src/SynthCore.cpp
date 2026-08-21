@@ -152,7 +152,6 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     uint32_t base_step = _noteStepTable[voice.note];
     if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
     
-    channelData.lfo.tick();
     int16_t lfo_value = 0;
     if(channelData.vibrato_frequency != 0 and channelData.vibrato_range > 0){lfo_value = channelData.lfo.getSample();}
     int32_t raw_bend = static_cast<int32_t>(channelData.pitch_bend - 1024);
@@ -185,6 +184,7 @@ for (int i = 0; i < MAX_CHANNELS; i++){
   _channel_sum_buffer[i] = (_channel_sum_buffer[i]* _channels_paremeters[i].volume) >> 7;
   channel_output[i] = _channel_sum_buffer[i];
   sum += _channel_sum_buffer[i];
+  _channels_paremeters[i].lfo.tick();
 }
 
 mix = (int16_t)CLAMP(sum, -32768, 32767);
