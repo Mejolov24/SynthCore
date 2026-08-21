@@ -43,7 +43,7 @@ uint8_t SynthCore::_allocateVID(){
   return 0;
 }
 
-void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel, bool ignore_note){
+void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, uint16_t velocity, uint8_t channel, bool ignore_note){
   uint8_t vid = _allocateVID();
   Voice& current_voice = _Voices[vid];
 

@@ -74,7 +74,7 @@ class SynthCore{
 
         LFO lfo;
     };
-    void createVoice(const SampleData* sample_data, uint8_t note, uint8_t velocity, uint8_t channel, bool ignore_note = false); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
+    void createVoice(const SampleData* sample_data, uint8_t note, uint16_t velocity, uint8_t channel, bool ignore_note = false); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
     void releaseVoiceByNote(uint8_t note, uint8_t channel); // release the voice
     void KillAllVoices(); // useful for when voices get stuck
     void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
@@ -106,7 +106,7 @@ class SynthCore{
 
         uint8_t note = 69;
         uint8_t channel = 0;
-        uint8_t velocity = 127;
+        uint16_t velocity = 1024;
     };
 
     int32_t _channel_sum_buffer[MAX_CHANNELS];
