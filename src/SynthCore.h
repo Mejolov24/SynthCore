@@ -54,7 +54,7 @@ class SynthCore{
             -392, -370, -346, -322, -298, -274, -249, -225, -200, -175, -150, -125, -100, -75, -50, -25
         };
 
-        void setFrequency(float hz, uint16_t sampling_rate){step_size = static_cast<uint32_t>((hz * LFO_LUT_SIZE * 4294967296.0f) / sampling_rate);}
+        void setFrequency(float hz, uint16_t sampling_rate){step_size = static_cast<uint32_t>((hz * 4294967296.0f) / sampling_rate);}
         int16_t getSample(){
             uint32_t index = phase >> 24;
             return lut[index];
@@ -69,7 +69,7 @@ class SynthCore{
         float vibrato_frequency = 0;
         uint8_t bend_range = 2; // semitone range, -2 and +2 
         uint8_t vibrato_range = 2;
-        uint8_t volume = 127;
+        uint16_t volume = 1024;
         bool sustain = false;
 
         LFO lfo;

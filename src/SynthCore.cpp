@@ -181,7 +181,7 @@ uint8_t vid = _SortedVID[i];
 }
 
 for (int i = 0; i < MAX_CHANNELS; i++){
-  _channel_sum_buffer[i] = (_channel_sum_buffer[i]* _channels_paremeters[i].volume) >> 7;
+  _channel_sum_buffer[i] = (_channel_sum_buffer[i]* _channels_paremeters[i].volume) >> 10;
   channel_output[i] = _channel_sum_buffer[i];
   sum += _channel_sum_buffer[i];
   _channels_paremeters[i].lfo.tick();
