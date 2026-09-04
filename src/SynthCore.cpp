@@ -4,12 +4,13 @@ void SynthCore::set_digital_gain(uint16_t value){
   digital_gain = value;
 }
 
-void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate, float tuning_offset_cents){
+void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate, float cents_ofsset){
   _baseNote =  base_note;
-  float tuning_ratio = pow(2.0f, tuning_offset_cents / 1200.0f);
+  float tuning_ratio = pow(2.0f, cents_ofsset / 1200.0f);
   for (int i = 0; i < 128; i++) {
           float ratio = pow(2.0f, (i - (float)_baseNote) / 12.0f);
           // Convert to Q10 fixed-point
+          ratio *= tuning_ratio;
           _noteStepTable[i] = (uint32_t)(ratio * 1024.0f);
       }
       _sampling_rate = sampling_rate;
