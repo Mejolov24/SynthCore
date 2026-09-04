@@ -79,7 +79,7 @@ class SynthCore{
     void KillAllVoices(); // useful for when voices get stuck
     void setChannelParameters(uint8_t channel, const ChannelParameters parameters);
     ChannelParameters getChannelParameters(uint8_t channel);
-    void setup(uint8_t base_note, uint16_t sampling_rate); // set the base note of all samples (Reference point) and the sample rate for some effects such as vibrato
+    void setup(uint8_t base_note, uint16_t sampling_rate, float cents_ofsset = 0); // set the base note of all samples (Reference point) and the sample rate for some effects such as vibrato
     void set_digital_gain(uint16_t value);
     void stepAudio(); // in case you need to control audio manually. processes one engine tick
     void updateAudioBuffer(); // processes the voices and generates buffer

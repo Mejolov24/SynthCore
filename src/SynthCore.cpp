@@ -4,8 +4,9 @@ void SynthCore::set_digital_gain(uint16_t value){
   digital_gain = value;
 }
 
-void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate){
+void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate, float tuning_offset_cents){
   _baseNote =  base_note;
+  float tuning_ratio = pow(2.0f, tuning_offset_cents / 1200.0f);
   for (int i = 0; i < 128; i++) {
           float ratio = pow(2.0f, (i - (float)_baseNote) / 12.0f);
           // Convert to Q10 fixed-point
@@ -161,7 +162,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
 
     uint64_t step = ((uint64_t)base_step * current_bend);
     voice.index += (step >> 10);
-    return static_cast<int16_t>((static_cast<int32_t>(interpolated_sample) * digital_gain * voice.velocity) >> 20);
+  return static_cast<int16_t>((static_cast<int64_t>(interpolated_sample) * digital_gain * voice.velocity) >> 20);
 }
 
 void SynthCore::stepAudio(){
