@@ -9,6 +9,7 @@ void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate, float cents_ofs
   _baseNote =  base_note;
   _sampling_rate = sampling_rate;
   float tuning_ratio = pow(2.0f, cents_ofsset / 1200.0f);
+  // LUTS
   for (int i = 0; i < 128; i++) {
           float ratio = pow(2.0f, (i - (float)_baseNote) / 12.0f);
           // Convert to QType
@@ -28,8 +29,17 @@ void SynthCore::setup(uint8_t base_note, uint16_t sampling_rate, float cents_ofs
 
 void SynthCore::setChannelParameters(uint8_t channel, const ChannelParameters parameters){
   if (channel >= MAX_CHANNELS) return;
-  _channels_paremeters[channel] = parameters;
-  _channels_paremeters[channel].lfo.setFrequency(parameters.vibrato_frequency,_sampling_rate);
+  if(parameters.vibrato_frequency != _channels_paremeters[channel].vibrato_frequency){
+    uint32_t previous_phase = _channels_paremeters[channel].lfo.phase;
+    _channels_paremeters[channel] = parameters;
+    _channels_paremeters[channel].lfo.phase = previous_phase;
+    _channels_paremeters[channel].lfo.setFrequency(parameters.vibrato_frequency,_sampling_rate);
+  }
+  else{
+    LFO previous_lfo = _channels_paremeters[channel].lfo;
+    _channels_paremeters[channel] = parameters;
+    _channels_paremeters[channel].lfo = previous_lfo;
+  }
 }
 
 SynthCore::ChannelParameters SynthCore::getChannelParameters(uint8_t channel){
@@ -55,13 +65,14 @@ uint8_t SynthCore::_allocateVID(){
   return 0;
 }
 
-void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, Q_TYPE volume, uint8_t channel, bool ignore_note){
+uint8_t SynthCore::createVoice(const SampleData* sample_data, uint8_t note, Q_TYPE volume, uint8_t channel, bool ignore_note){
   uint8_t vid = _allocateVID();
   Voice& current_voice = _Voices[vid];
 
-  current_voice.can_loop = true;
   current_voice.Q_index = 0;
-  if (sample_data->loop_start == 0 and sample_data->loop_end == 0) {current_voice.can_loop = false;}
+  current_voice.can_loop =
+    sample_data->loop_end > sample_data->loop_start &&
+    sample_data->loop_end <= sample_data->length;
   current_voice.sample_data = sample_data;
   current_voice.note = note;
   current_voice.Q_volume = volume;
@@ -77,7 +88,49 @@ void SynthCore::createVoice(const SampleData* sample_data, uint8_t note, Q_TYPE 
   _SortedVID[_active_voice_count] = vid;
   _active_voice_count ++;
 
+  return vid;
 }
+
+uint8_t SynthCore::getVIDByChannel(uint8_t note, uint8_t channel){
+    Voice* voice = nullptr;
+      // find voice
+    for (int i = _active_voice_count - 1; i >= 0 ; i--){
+      uint8_t vid = _SortedVID[i];
+      voice = &_Voices[vid];
+      if (voice->channel != channel){continue;}
+      if (voice->note != note){continue;}
+      return vid;
+    }
+    return 255;
+}
+
+void SynthCore::releaseVoice(uint8_t VID){
+  Voice& voice = _Voices[VID];
+  voice.held = false;
+}
+
+SynthCore::Voice SynthCore::getVoiceInfo(uint8_t VID){
+  return _Voices[VID];
+}
+
+
+void SynthCore::slideVoice(uint8_t VID, uint8_t channel, uint8_t target_note, uint16_t duration_ms){
+  Voice* voice = &_Voices[VID];
+
+  uint32_t sample_duration = (uint32_t)duration_ms * _sampling_rate / 1000;
+  if(voice->pitch_slide.active){
+    voice->pitch_slide.start_note += voice->pitch_slide.GetPitchOffset();
+  }
+  else{
+    voice->pitch_slide.start_note = Q_STEP_TYPE(voice->note);
+  }
+  voice->pitch_slide.elapsed_samples = 0;
+  voice->pitch_slide.sample_duration = sample_duration;
+  voice->pitch_slide.target_note = target_note;
+  voice->pitch_slide.active = true;
+
+}
+
 
 void SynthCore::_removeIDFromSortedVID(uint8_t VID) {
     int targetIndex = -1;
@@ -100,17 +153,6 @@ void SynthCore::_removeIDFromSortedVID(uint8_t VID) {
     }
 }
 
-void SynthCore::releaseVoiceByNote(uint8_t note, uint8_t channel){
-    for (int i = _active_voice_count - 1; i >= 0 ; i--){
-      uint8_t vid = _SortedVID[i];
-      Voice& current_voice = _Voices[vid];
-      if (current_voice.channel != channel){continue;}
-      if (current_voice.note != note){continue;}
-      current_voice.held = false;
-      break;
-    }
-}
-
 void SynthCore::KillAllVoices(){
   for (int i = 0; i < MAX_VOICES ; i++){
       Voice& current_voice = _Voices[i];
@@ -125,8 +167,10 @@ int16_t SynthCore::_processVoice(uint8_t VID){
   Voice& voice = _Voices[VID];
   if (!voice.active) return 0;
   if (!voice.sample_data) return 0;
+
   ChannelParameters& channelData = _channels_paremeters[voice.channel];
   const SampleData& sample_data = *(voice.sample_data);
+  
   Q_IDX_TYPE boundaryA = 0;
   Q_IDX_TYPE boundaryB = voice.Q_length;
   bool looping = false;
@@ -154,7 +198,7 @@ int16_t SynthCore::_processVoice(uint8_t VID){
         return 0;
         }
     }
-    // audio processing
+    // interpolation
     uint32_t int_index = voice.Q_index;
     Q_TYPE frac = Q_TYPE::from_raw(voice.Q_index.raw & ((1 << Q_FRAC_SIZE) - 1));
     int16_t sampleA = sample_data.data[int_index];
@@ -163,25 +207,42 @@ int16_t SynthCore::_processVoice(uint8_t VID){
     if (int_index + 1 < sample_data.length) {
         sampleB = sample_data.data[int_index + 1];
     }
-    Q_TYPE sampleA_Q = Q_TYPE(static_cast<float>(sampleA) / 32768.0f);
-    Q_TYPE sampleB_Q = Q_TYPE(static_cast<float>(sampleB) / 32768.0f);
 
-    Q_TYPE interpolated_sample = sampleA_Q + (sampleB_Q - sampleA_Q) * frac;
+    int32_t interpolated_sample = sampleA + ((static_cast<int32_t>(sampleB) - sampleA) * frac.raw >> Q_FRAC_SIZE);
+    // pitch bends
     Q_STEP_TYPE base_step = _noteStepTable[voice.note];
     if (voice.ignore_note) base_step = _noteStepTable[_baseNote];
     
-    Q_TYPE lfo_value = 0;
-    if(channelData.vibrato_frequency != 0 and channelData.vibrato_range > 0){lfo_value = channelData.lfo.getSample();}
-    Q_TYPE scaled_bend_offset = (channelData.pitch_bend * (Q_TYPE)(channelData.bend_range)) / Q_TYPE(12);
-    Q_TYPE scaled_lfo_offset = (lfo_value *  Q_TYPE(channelData.vibrato_range)) /  Q_TYPE(12);
-    Q_TYPE current_bend = Q_TYPE(1) + scaled_bend_offset + scaled_lfo_offset;
+    Q_STEP_TYPE lfo_value = 0;
+    if(channelData.vibrato_frequency != 0.0f and channelData.vibrato_range > Q_STEP_TYPE(0)){lfo_value = Q_STEP_TYPE(channelData.lfo.getSample());}
+    Q_STEP_TYPE scaled_lfo_offset = (lfo_value * channelData.vibrato_range) / Q_STEP_TYPE(12);
 
-    Q_STEP_TYPE step = (base_step * Q_STEP_TYPE(current_bend));
-    voice.Q_index += Q_IDX_TYPE(step); //temporal, for debuging
-    Q_TYPE output = interpolated_sample * digital_gain * voice.Q_volume;
+    Q_STEP_TYPE bend = Q_STEP_TYPE(channelData.pitch_bend);
+    Q_STEP_TYPE pitch_bend = Q_STEP_TYPE(1) + bend / Q_STEP_TYPE(12);
 
-  int32_t pcm = static_cast<int32_t>((static_cast<int64_t>(output.raw) * 32768) >> Q_FRAC_SIZE);
-  return static_cast<int16_t>(CLAMP(pcm, -32768, 32767));
+    Q_STEP_TYPE pitch_slide = voice.pitch_slide.GetPitchOffset() / Q_STEP_TYPE(12);
+    if(voice.pitch_slide.finished){
+      voice.note = voice.pitch_slide.target_note;
+      base_step = _noteStepTable[voice.note];
+      voice.pitch_slide.finished = false;
+    }
+    Q_STEP_TYPE final_bend = pitch_bend + scaled_lfo_offset + pitch_slide;
+
+    Q_STEP_TYPE step = (base_step * final_bend);
+    voice.Q_index += step;
+
+int32_t output = (static_cast<int64_t>(interpolated_sample) * digital_gain.raw) >> Q_FRAC_SIZE;
+  output = (static_cast<int64_t>(output) * voice.Q_volume.raw) >> Q_FRAC_SIZE;
+  return static_cast<int16_t>(CLAMP(output, INT16_MIN, INT16_MAX));
+}
+
+uint8_t SynthCore::isChannelActive(uint8_t channel){
+  for (int i = 0; i < MAX_VOICES; i++) {
+    if (_Voices[i].held && _Voices[i].channel == channel) {
+      return i;
+    }
+    return 255;
+  }
 }
 
 void SynthCore::stepAudio(){
@@ -191,12 +252,14 @@ void SynthCore::stepAudio(){
 
 for (int i = 0; i < MAX_CHANNELS; i++) {
     _channel_sum_buffer[i] = 0; 
+    _active_channels[i] = false;
 }
 
 for (int i = _active_voice_count - 1; i >= 0; i--){
 uint8_t vid = _SortedVID[i];
     if (_Voices[vid].active) {
         _channel_sum_buffer[_Voices[vid].channel] += _processVoice(vid);
+        _active_channels[_Voices[vid].channel] = true;
     }
 }
 
@@ -207,7 +270,7 @@ for (int i = 0; i < MAX_CHANNELS; i++){
   _channels_paremeters[i].lfo.tick();
 }
 
-mix = (int16_t)CLAMP(sum, -32768, 32767);
+mix = (int16_t)CLAMP(sum, INT16_MIN, INT16_MAX);
 master_mix = mix;
 }
 
