@@ -121,5 +121,16 @@ int main() {
 }
 ```
 
+## Related proyects
+[![CardStudio](https://github-readme-stats.vercel.app/api/pin/?username=Mejolov24&repo=CardStudio)](https://github.com/Mejolov24/CardStudio)
+ - Cardputer firmware that uses it
+
+[![SyntCore-Midi](https://github-readme-stats.vercel.app/api/pin/?username=Mejolov24&repo=SynthCore-Midi)](https://github.com/Mejolov24/SynthCore-Midi)
+ - Midi helper
+
+[![SynthTracer](https://github-readme-stats.vercel.app/api/pin/?username=Mejolov24&repo=SynthTracer)](https://github.com/Mejolov24/SynthTracer)
+ - Oscilloscope visualization over serial, Not really dependent on it, but made *for* it.
+
+
 Copyright (c) 2026 Guillermo Beckers Rival
 Licensed under the GNU GPLv3
