@@ -16,7 +16,7 @@
       "maintainer": true
     }
   ],
-  "license": "MIT",
+  "license": "GNU GPLv3",
   "homepage": "https://github.com/Mejolov24/SynthCore",
   "frameworks": "*",
   "platforms": "*"
