@@ -93,12 +93,24 @@ uint8_t SynthCore::createVoice(const SampleData* sample_data, uint8_t note, Q_TY
 
 uint8_t SynthCore::getVIDByChannel(uint8_t note, uint8_t channel){
     Voice* voice = nullptr;
-      // find voice
     for (int i = _active_voice_count - 1; i >= 0 ; i--){
       uint8_t vid = _SortedVID[i];
       voice = &_Voices[vid];
       if (voice->channel != channel){continue;}
       if (voice->note != note){continue;}
+      return vid;
+    }
+    return 255;
+}
+
+uint8_t SynthCore::isChannelActive(uint8_t channel){
+    Voice* voice = nullptr;
+      // find voice
+    for (int i = _active_voice_count - 1; i >= 0 ; i--){
+      uint8_t vid = _SortedVID[i];
+      voice = &_Voices[vid];
+      if (voice->channel != channel){continue;}
+      if (!voice->active){continue;}
       return vid;
     }
     return 255;
@@ -234,15 +246,6 @@ int16_t SynthCore::_processVoice(uint8_t VID){
 int32_t output = (static_cast<int64_t>(interpolated_sample) * digital_gain.raw) >> Q_FRAC_SIZE;
   output = (static_cast<int64_t>(output) * voice.Q_volume.raw) >> Q_FRAC_SIZE;
   return static_cast<int16_t>(CLAMP(output, INT16_MIN, INT16_MAX));
-}
-
-uint8_t SynthCore::isChannelActive(uint8_t channel){
-  for (int i = 0; i < MAX_VOICES; i++) {
-    if (_Voices[i].held && _Voices[i].channel == channel) {
-      return i;
-    }
-    return 255;
-  }
 }
 
 void SynthCore::stepAudio(){
