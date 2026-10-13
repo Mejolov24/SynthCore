@@ -142,9 +142,9 @@ class SynthCore{
 
     public:
     uint8_t createVoice(const SampleData* sample_data, uint8_t note, Q_TYPE volume, uint8_t channel, bool ignore_note = false); // Creates a voice, if MAX_VOICES is reached, it will steal the oldest voice
-    void slideVoice(uint8_t VID, uint8_t channel, uint8_t target_note, uint16_t duration_ms);
     uint8_t getVIDByChannel(uint8_t note, uint8_t channel);
     Voice getVoiceInfo(uint8_t VID);
+    void slideVoice(uint8_t VID, uint8_t target_note, uint16_t duration_ms);
     void releaseVoice(uint8_t VID);
     uint8_t isChannelActive(uint8_t channel);
     void KillAllVoices(); // useful for when voices get stuck

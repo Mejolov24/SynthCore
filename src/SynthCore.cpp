@@ -126,7 +126,7 @@ SynthCore::Voice SynthCore::getVoiceInfo(uint8_t VID){
 }
 
 
-void SynthCore::slideVoice(uint8_t VID, uint8_t channel, uint8_t target_note, uint16_t duration_ms){
+void SynthCore::slideVoice(uint8_t VID, uint8_t target_note, uint16_t duration_ms){
   Voice* voice = &_Voices[VID];
 
   uint32_t sample_duration = (uint32_t)duration_ms * _sampling_rate / 1000;

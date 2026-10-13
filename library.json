@@ -1,0 +1,23 @@
+{
+  "name": "SynthCore",
+  "version": "2.0.0",
+  "description": "Audio engine for micro-controllers",
+  "keywords": "Audio, DSP, embedded",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/Mejolov24/SynthCore.git"
+  },
+  "authors":
+  [
+    {
+      "name": "Guillermo Beckers",
+      "email": "beckers.rival@gmail.com",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Mejolov24/SynthCore",
+  "frameworks": "*",
+  "platforms": "*"
+}
